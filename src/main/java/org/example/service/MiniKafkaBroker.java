@@ -1,5 +1,7 @@
 package org.example.service;
 
+import org.example.records.BrokerNode;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
@@ -20,21 +22,61 @@ public class MiniKafkaBroker {
     
     private final ExecutorService clientPool;
 
+    private final BrokerNode brokerNode;
+
+//    private final MetadataStore metadataStore;
+
     private static final String INITIAL_FILE_NAME = "00000000000000000000";
 
-    public MiniKafkaBroker(String topic, int partitions, int port){
+    public MiniKafkaBroker(String topic, int partitions, int port) throws IOException {
 
         this.topic = topic;
         this.partitions = partitions;
         this.port = port;
+        this.brokerNode = new BrokerNode(0, "localhost", port);
+//        this.metadataStore = new MetadataStore(brokerNode);
+
         clientPool = Executors.newCachedThreadPool();
+
+
+
     }
 
     public void start() throws IOException {
-        setupStorage();
+//        metadataStore.load();
+//        if(!metadataStore.contains(topic)){
+//            setupStorage();
+//        }
         startServer();
+        setupStorage();
 
     }
+
+    private void startServer() throws IOException {
+        try(ServerSocketChannel server = ServerSocketChannel.open()){
+            server.bind(new InetSocketAddress(port));
+            server.configureBlocking(true);
+
+            System.out.println("Broker listening on "+port);
+
+            while(true){
+                try{
+                    SocketChannel client = server.accept();
+                    client.configureBlocking(true);
+
+                    clientPool.submit(new ClientHandler(client));
+
+                }catch(IOException ex){
+                    System.out.println("Error accepting connection: "+ex.getMessage());
+                }
+
+            }
+
+        }
+
+    }
+
+
 
     private void setupStorage() throws IOException {
         System.out.printf("[*] Provisioning broker for topic '%s' with %d partitions ....%n", topic, partitions);
@@ -65,53 +107,8 @@ public class MiniKafkaBroker {
         }
     }
 
-    private void startServer() throws IOException {
-        try(ServerSocketChannel server = ServerSocketChannel.open()){
-            server.bind(new InetSocketAddress(port));
-            server.configureBlocking(true);
-
-            System.out.println("Broker listening on "+port);
-
-            while(true){
-                try{
-                    SocketChannel client = server.accept();
-                    client.configureBlocking(true);
-
-                    clientPool.submit(new ClientHandler(client));
-
-                }catch(IOException ex){
-                    System.out.println("Error accepting connection: "+ex.getMessage());
-                }
-
-            }
-
-        }
-
-    }
-
     private void saveMetadataSnapshot(){
 
-    }
-
-    private static class ClientHandler implements Runnable {
-        private final SocketChannel socket;
-
-        public ClientHandler(SocketChannel socket) {
-            this.socket = socket;
-        }
-
-        @Override
-        public void run() {
-            // TODO: In the next step, we will implement the input stream reading
-            // to handle "PRODUCE" and "CONSUME" commands.
-            try {
-                // Keep connection open for now to simulate a session
-                Thread.sleep(1000);
-                socket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
 
