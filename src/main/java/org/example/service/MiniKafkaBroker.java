@@ -13,28 +13,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MiniKafkaBroker {
-
-    private final String topic;
-
-    private final int partitions;
-
     private final int port;
     
     private final ExecutorService clientPool;
 
     private final BrokerNode brokerNode;
 
-//    private final MetadataStore metadataStore;
+    private final MetadataStore metadataStore;
 
     private static final String INITIAL_FILE_NAME = "00000000000000000000";
 
-    public MiniKafkaBroker(String topic, int partitions, int port) throws IOException {
+    public MiniKafkaBroker(int port) throws IOException {
 
-        this.topic = topic;
-        this.partitions = partitions;
         this.port = port;
         this.brokerNode = new BrokerNode(0, "localhost", port);
-//        this.metadataStore = new MetadataStore(brokerNode);
+        this.metadataStore = new MetadataStore(brokerNode);
 
         clientPool = Executors.newCachedThreadPool();
 
@@ -43,12 +36,12 @@ public class MiniKafkaBroker {
     }
 
     public void start() throws IOException {
-//        metadataStore.load();
+        metadataStore.load();
 //        if(!metadataStore.contains(topic)){
 //            setupStorage();
 //        }
         startServer();
-        setupStorage();
+
 
     }
 
@@ -78,7 +71,11 @@ public class MiniKafkaBroker {
 
 
 
-    private void setupStorage() throws IOException {
+    private void setupStorage(String topic, int partitions) throws IOException {
+
+        if(metadataStore.contains(topic)){
+            System.out.println("Topic already exists");
+        }
         System.out.printf("[*] Provisioning broker for topic '%s' with %d partitions ....%n", topic, partitions);
 
         for(int i = 0; i<partitions; i++){
