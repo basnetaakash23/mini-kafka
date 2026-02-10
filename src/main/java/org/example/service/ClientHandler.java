@@ -1,5 +1,6 @@
 package org.example.service;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -7,8 +8,11 @@ import java.nio.charset.StandardCharsets;
 public class ClientHandler implements Runnable {
     private final SocketChannel socket;
 
-    public ClientHandler(SocketChannel socket) {
+    private final TopicLog topicLog;
+
+    public ClientHandler(SocketChannel socket, TopicLog topicLog) {
         this.socket = socket;
+        this.topicLog = topicLog;
     }
 
     @Override
@@ -58,7 +62,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void processRequest(ByteBuffer buffer){
+    private void processRequest(ByteBuffer buffer) throws IOException {
         short commandLength = buffer.getShort();
 
         byte[] commandBytes = new byte[commandLength];
@@ -80,10 +84,19 @@ public class ClientHandler implements Runnable {
 
         System.out.println("Received : " + command+" "+topic+" "+partition+" "+message);
 
-
     }
 
-    private void parseCommand(String command, ByteBuffer buffer){
+    private void parseCommand(String command, String topic, int partition, byte[] messageBytes) throws IOException {
+        if(command.equals("CREATE-TOPIC")){
+            topicLog.setupStorage(topic, partition);
+        }
+        if(command.equals("PRODUCE")){
+            topicLog.append(messageBytes);
+
+        }
+        if(command.equals("CONSUME")){
+
+        }
 
     }
 

@@ -14,13 +14,13 @@ import java.util.concurrent.Executors;
 
 public class MiniKafkaBroker {
     private final int port;
-    
     private final ExecutorService clientPool;
-
     private final BrokerNode brokerNode;
-
     private final MetadataStore metadataStore;
 
+    private final BrokerController brokerController;
+    
+    private final TopicLog topicLog;
     private static final String INITIAL_FILE_NAME = "00000000000000000000";
 
     public MiniKafkaBroker(int port) throws IOException {
@@ -28,20 +28,14 @@ public class MiniKafkaBroker {
         this.port = port;
         this.brokerNode = new BrokerNode(0, "localhost", port);
         this.metadataStore = new MetadataStore(brokerNode);
-
+        this.brokerController = new BrokerController(metadataStore);
         clientPool = Executors.newCachedThreadPool();
-
-
-
+        topicLog = new TopicLog();
     }
 
     public void start() throws IOException {
         metadataStore.load();
-//        if(!metadataStore.contains(topic)){
-//            setupStorage();
-//        }
         startServer();
-
 
     }
 
@@ -57,7 +51,7 @@ public class MiniKafkaBroker {
                     SocketChannel client = server.accept();
                     client.configureBlocking(true);
 
-                    clientPool.submit(new ClientHandler(client));
+                    clientPool.submit(new ClientHandler(client, topicLog));
 
                 }catch(IOException ex){
                     System.out.println("Error accepting connection: "+ex.getMessage());
@@ -69,9 +63,7 @@ public class MiniKafkaBroker {
 
     }
 
-
-
-    private void setupStorage(String topic, int partitions) throws IOException {
+    public void setupStorage(String topic, int partitions) throws IOException {
 
         if(metadataStore.contains(topic)){
             System.out.println("Topic already exists");
