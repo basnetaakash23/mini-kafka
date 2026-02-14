@@ -1,5 +1,8 @@
 package org.example.service;
 
+import org.example.processor.CommandProcessor;
+import org.example.records.Message;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -7,17 +10,16 @@ import java.nio.charset.StandardCharsets;
 
 public class ClientHandler implements Runnable {
     private final SocketChannel socket;
+    private final CommandProcessor commandProcessor;
 
-    private final TopicLog topicLog;
-
-    public ClientHandler(SocketChannel socket, TopicLog topicLog) {
+    public ClientHandler(SocketChannel socket, CommandProcessor commandProcessor) {
         this.socket = socket;
-        this.topicLog = topicLog;
+        this.commandProcessor = commandProcessor;
     }
 
     @Override
     public void run() {
-        // to handle "PRODUCE" and "CONSUME" commands.
+        // to handle "PRODUCE" , "CONSUME" and "CREATE TOPIC" commands.
         try {
             // Keep connection open for now to simulate a session
             System.out.println("Received a request");
@@ -80,48 +82,42 @@ public class ClientHandler implements Runnable {
         int messageLength = buffer.getInt();
         byte[] messageBytes = new byte[messageLength];
         buffer.get(messageBytes);
-        String message = new String(messageBytes, StandardCharsets.UTF_8);
+        String payload = new String(messageBytes, StandardCharsets.UTF_8);
 
-        System.out.println("Received : " + command+" "+topic+" "+partition+" "+message);
+        Message message = new Message(command, topic, partition, messageBytes);
+        parseCommand(message);
 
-    }
-
-    private void parseCommand(String command, String topic, int partition, byte[] messageBytes) throws IOException {
-        if(command.equals("CREATE-TOPIC")){
-            topicLog.setupStorage(topic, partition);
-        }
-        if(command.equals("PRODUCE")){
-            topicLog.append(messageBytes);
-
-        }
-        if(command.equals("CONSUME")){
-
-        }
+        System.out.println("Received : " + command+" "+topic+" "+partition+" "+payload);
 
     }
 
-    private void parseAndProcessCommands(ByteBuffer buffer){
-        boolean lineFound = false;
-        StringBuilder stringBuilder = new StringBuilder();
-        while(buffer.hasRemaining()){
-            char c = (char) buffer.get();
-            if(c=='\n'){
-                lineFound = true;
-                break;
-            }
-            stringBuilder.append(c);
-            System.out.println(stringBuilder.toString());
-        }
-
-        String command = stringBuilder.toString().trim();
-        handleCommand(command);
+    private void parseCommand(Message message) throws IOException {
+        commandProcessor.parseCommand(message);
 
     }
 
-    private void handleCommand(String command){
-        System.out.print("Handling command ");
-        System.out.println(command);
-    }
+//    private void parseAndProcessCommands(ByteBuffer buffer){
+//        boolean lineFound = false;
+//        StringBuilder stringBuilder = new StringBuilder();
+//        while(buffer.hasRemaining()){
+//            char c = (char) buffer.get();
+//            if(c=='\n'){
+//                lineFound = true;
+//                break;
+//            }
+//            stringBuilder.append(c);
+//            System.out.println(stringBuilder.toString());
+//        }
+//
+//        String command = stringBuilder.toString().trim();
+//        handleCommand(command);
+//
+//    }
+//
+//    private void handleCommand(String command){
+//        System.out.print("Handling command ");
+//        System.out.println(command);
+//    }
 
 
 }

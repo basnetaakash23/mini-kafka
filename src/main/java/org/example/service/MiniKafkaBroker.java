@@ -1,14 +1,14 @@
 package org.example.service;
 
+import org.example.component.MetadataStore;
+import org.example.component.TopicLog;
+import org.example.processor.CommandProcessor;
 import org.example.records.BrokerNode;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,7 +18,7 @@ public class MiniKafkaBroker {
     private final BrokerNode brokerNode;
     private final MetadataStore metadataStore;
 
-    private final BrokerController brokerController;
+    private final CommandProcessor commandProcessor;
     
     private final TopicLog topicLog;
     private static final String INITIAL_FILE_NAME = "00000000000000000000";
@@ -28,9 +28,9 @@ public class MiniKafkaBroker {
         this.port = port;
         this.brokerNode = new BrokerNode(0, "localhost", port);
         this.metadataStore = new MetadataStore(brokerNode);
-        this.brokerController = new BrokerController(metadataStore);
         clientPool = Executors.newCachedThreadPool();
         topicLog = new TopicLog();
+        commandProcessor = new CommandProcessor(topicLog, metadataStore);
     }
 
     public void start() throws IOException {
@@ -51,7 +51,7 @@ public class MiniKafkaBroker {
                     SocketChannel client = server.accept();
                     client.configureBlocking(true);
 
-                    clientPool.submit(new ClientHandler(client, topicLog));
+                    clientPool.submit(new ClientHandler(client, commandProcessor));
 
                 }catch(IOException ex){
                     System.out.println("Error accepting connection: "+ex.getMessage());
@@ -61,39 +61,6 @@ public class MiniKafkaBroker {
 
         }
 
-    }
-
-    public void setupStorage(String topic, int partitions) throws IOException {
-
-        if(metadataStore.contains(topic)){
-            System.out.println("Topic already exists");
-        }
-        System.out.printf("[*] Provisioning broker for topic '%s' with %d partitions ....%n", topic, partitions);
-
-        for(int i = 0; i<partitions; i++){
-
-            //create directory: e.g, "my-topic-0"
-            String dirName = topic+ "-"+i;
-            Path partitionDir = Paths.get(dirName);
-
-            if(!Files.exists(partitionDir)) {
-                Files.createDirectories(partitionDir);
-                System.out.println("    [+] Created Directory: "+partitionDir.toAbsolutePath());
-            }
-
-            //create the 3 standard kafka files
-            createFileIfNotExists(partitionDir, INITIAL_FILE_NAME+ ".log");
-            createFileIfNotExists(partitionDir, INITIAL_FILE_NAME+ ".index");
-            createFileIfNotExists(partitionDir, INITIAL_FILE_NAME+ ".timeindex");
-
-        }
-    }
-
-    private void createFileIfNotExists(Path dir, String filename) throws IOException {
-        Path filePath = dir.resolve(filename);
-        if (!Files.exists(filePath)) {
-            Files.createFile(filePath);
-        }
     }
 
     private void saveMetadataSnapshot(){

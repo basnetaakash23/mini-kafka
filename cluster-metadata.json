@@ -1,0 +1,17 @@
+{
+  "brokers": [
+    { "id": 1, "host": "localhost", "port": 9092 }
+  ],
+  "topics": [
+    {
+      "topicName": "orders",
+      "partitions": [
+        {
+          "partitionId": 0,
+          "leaderBrokerId": 1,
+          "replicaBrokerIds": [1]
+        }
+      ]
+    }
+  ]
+}
