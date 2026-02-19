@@ -1,7 +1,5 @@
 # mini-kafka
 
 ### To-do
-- Create Topic or produce messages based on commands
-- Check if topic exists and if not exists create topic.
-- While producing check if topic exists, if not send error as topic not found.
+- Implement functionality to create topic after parsing commands and write it to cluster metadata using object mapper.
 - Implement java producer with batch messaging. 
