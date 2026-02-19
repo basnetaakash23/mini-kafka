@@ -29,7 +29,7 @@ public class LogSegment implements AutoCloseable{
         writeLock.lock(); // Ensure only one thread writes to this file at a time
         try {
             // 1. Prepare buffer (Length + Payload)
-            ByteBuffer buffer = ByteBuffer.allocate(4 + message.length);
+            ByteBuffer buffer = ByteBuffer.allocateDirect(4 + message.length);
             buffer.putInt(message.length);
             buffer.put(message);
             buffer.flip();
@@ -37,7 +37,6 @@ public class LogSegment implements AutoCloseable{
             // 2. Write to end of file
             fileChannel.write(buffer, fileChannel.size());
 
-            // In a real system, you might not force() on every write for speed (page cache)
             // fileChannel.force(false);
         } catch (IOException e) {
             e.printStackTrace(); // Handle disk errors gracefully

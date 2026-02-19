@@ -1,4 +1,4 @@
-package org.example.records;
+package org.example.records.broker;
 
 import java.io.Serializable;
 import java.util.List;

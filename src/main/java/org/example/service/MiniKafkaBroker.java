@@ -3,7 +3,7 @@ package org.example.service;
 import org.example.component.MetadataStore;
 import org.example.component.TopicLog;
 import org.example.processor.CommandProcessor;
-import org.example.records.BrokerNode;
+import org.example.records.broker.BrokerNode;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

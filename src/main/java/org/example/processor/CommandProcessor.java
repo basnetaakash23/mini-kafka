@@ -30,16 +30,22 @@ public class CommandProcessor {
                 System.out.println("TOPIC = "+message.topic()+" already exists.");
                 return;
             }
-            activeTopics.put(message.topic(), topicLog.setupStorage(message.topic(), message.partition()));
+            activeTopics.put(message.topic()+"-"+message.partition(), topicLog.setupStorage(message.topic(), message.partition()));
             System.out.println("Topic created: " + message.topic());
         }
 
         // 3. Handle PRODUCE
         else if (message.command().equals("PRODUCE")) {
             // Retrieve the EXISTING topic from the map
-            LogSegment logSegment = activeTopics.get(message.topic());
+            if(!metadataStore.contains(message.topic())){
+                System.out.println(message.topic()+" does not exist. Please create a topic first");
+                return;
 
-            if (topicLog != null) {
+            }
+            System.out.println("Message produce received, message= "+message.toString());
+            LogSegment logSegment = activeTopics.get(message.topic()+"-"+message.partition());
+
+            if (logSegment != null) {
                 // Delegate writing to the TopicLog (which finds the correct LogSegment)
                 logSegment.append(message.messageBytes());
             } else {

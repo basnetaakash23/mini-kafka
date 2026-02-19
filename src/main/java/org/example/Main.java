@@ -16,7 +16,7 @@ public class Main {
         int partitions = Integer.parseInt(args[1]);
         int port = Integer.parseInt(args[2]);
 
-        MiniKafkaBroker miniKafkaBroker = new MiniKafkaBroker( port);
+        MiniKafkaBroker miniKafkaBroker = new MiniKafkaBroker(port);
         miniKafkaBroker.start();
 
     }

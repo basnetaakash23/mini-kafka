@@ -1,17 +1,12 @@
 package org.example.component;
 
-import com.fasterxml.jackson.core.exc.StreamReadException;
-import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.records.BrokerNode;
-import org.example.records.ClusterMetadata;
-import org.example.records.PartitionInfo;
-import org.example.records.TopicMetadata;
+import org.example.records.broker.BrokerNode;
+import org.example.records.broker.ClusterMetadata;
+import org.example.records.broker.PartitionInfo;
+import org.example.records.broker.TopicMetadata;
 
-
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,25 +22,32 @@ public class MetadataStore {
 
     // in memory cache : topic name - metadata object
     private Map<String, TopicMetadata> topics = new HashMap<>();
-    //private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // Created the object mapper static final as the object mapper might be required multiple times during the application runtime and hence a single instance will
+    // be in application memory throughout the application runtime.
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public MetadataStore(BrokerNode brokerNode){
         this.brokerNode = brokerNode;
 
     }
 
+
+    //made it static, because it runs only once and is used only once.
+    public static ClusterMetadata readClusterMetadata() throws IOException {
+        Path filePath = Paths.get("metadata/cluster-metadata.json");
+        ClusterMetadata metadata = objectMapper.readValue(filePath.toFile(), ClusterMetadata.class);
+        return metadata;
+    }
+
+
+
     //load the metadata
     public void load(){
-//        Path partitionDir = Paths.get("/");
-//        Path filePath = partitionDir.resolve(STORAGE_FILE);
-
 
         try{
             //deserialize json back to java object
-            //ClusterMetadata metadata = objectMapper.readValue(filePath.toFile(), ClusterMetadata.class);
-            PartitionInfo partitionInfo = new PartitionInfo(0, 1, List.of(1));
-            TopicMetadata topicMetadata = new TopicMetadata("my-topic", List.of(partitionInfo));
-            ClusterMetadata clusterMetadata = new ClusterMetadata(List.of(brokerNode), List.of(topicMetadata));
+            ClusterMetadata clusterMetadata = MetadataStore.readClusterMetadata();
 
             //populate the internal metadata
             for(TopicMetadata topicData : clusterMetadata.topics()){
